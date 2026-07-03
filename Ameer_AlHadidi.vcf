@@ -1,0 +1,10 @@
+BEGIN:VCARD
+VERSION:3.0
+N:AlHadidi;Ameer;;;
+FN:Ameer AlHadidi
+ORG:Tech Solutions LLC
+TITLE:Software Engineer
+TEL;TYPE=WORK,VOICE:+96899790787
+EMAIL;TYPE=WORK,INTERNET:ameer@rop.gov.om
+ADR;TYPE=WORK:;;Al Maabilah, Seeb, Oman
+END:VCARD
