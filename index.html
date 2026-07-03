@@ -1,37 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>vCard Generator</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .container { max-width: 400px; margin: 0 auto; }
-        input, button { width: 100%; margin-bottom: 10px; padding: 8px; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vCard Download</title>
 </head>
-<body>
-<div class="container">
-    <h2>vCard Generator</h2>
-    <input type="text" id="firstName" placeholder="First Name" required>
-    <input type="text" id="lastName" placeholder="Last Name">
-    <input type="tel" id="phone" placeholder="Phone">
-    <input type="email" id="email" placeholder="Email">
-    <button onclick="generateVCF()">Download .vcf File</button>
-</div>
-<script>
-function generateVCF() {
-    const fn = document.getElementById('firstName').value;
-    const ln = document.getElementById('lastName').value;
-    const ph = document.getElementById('phone').value;
-    const em = document.getElementById('email').value;
-    
-    const vcard = `BEGIN:VCARD\nVERSION:3.0\nN:${ln};${fn}\nFN:${fn} ${ln}\nTEL:${ph}\nEMAIL:${em}\nEND:VCARD`;
-    const blob = new Blob([vcard], { type: 'text/vcard' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${fn}.vcf`;
-    link.click();
-}
-</script>
+<body style="background-color: #ffffff; margin: 0;">
+
+    <script>
+        // 1. Define your contact details
+        const contact = {
+            firstName: "Ameer",
+            lastName: "AlHadidi",
+            phone: "+96899790787", 
+            email: "ameer@rop.gov.om",
+            title: "Software Engineer",
+            company: "Tech Solutions LLC",
+            address: "Al Maabilah, Seeb, Oman" 
+        };
+
+        // 2. Generate vCard v3.0 format
+        function generateVCard() {
+            return [
+                "BEGIN:VCARD",
+                "VERSION:3.0",
+                `N:${contact.lastName};${contact.firstName};;;`,
+                `FN:${contact.firstName} ${contact.lastName}`,
+                `ORG:${contact.company}`,
+                `TITLE:${contact.title}`,
+                `TEL;TYPE=WORK,VOICE:${contact.phone}`,
+                `EMAIL;TYPE=WORK,INTERNET:${contact.email}`,
+                `ADR;TYPE=WORK:;;${contact.address}`,
+                "END:VCARD"
+            ].join("\n");
+        }
+
+        // 3. Trigger download automatically
+        function downloadVCF() {
+            const vcardText = generateVCard();
+            const blob = new Blob([vcardText], { type: "text/vcard" });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${contact.firstName}_${contact.lastName}.vcf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Execute immediately when page loads
+        document.addEventListener("DOMContentLoaded", downloadVCF);
+    </script>
 </body>
 </html>
