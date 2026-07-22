@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sauce-Well Paper Cup — Product Drawing</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --paper:#F7F5EE;
+    --sheet:#FFFFFF;
+    --ink:#26251F;
+    --ink-soft:#6E6C60;
+    --dim:#1F7A6D;       /* dimension / annotation teal */
+    --sauce:#D9902A;     /* sauce amber */
+    --seal:#5B7FA6;      /* silicone seal blue */
+    --kraft:#E8DCC8;     /* paper cup kraft */
+    --hair:#D8D4C6;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;
+    line-height:1.45;
+  }
+  .mono{font-family:"SF Mono","Cascadia Mono","Consolas",monospace}
+
+  header{
+    max-width:1180px;margin:0 auto;padding:34px 24px 10px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;
+    border-bottom:2px solid var(--ink);
+  }
+  header h1{font-size:1.55rem;letter-spacing:.01em;font-weight:700}
+  header .sub{color:var(--ink-soft);font-size:.85rem;margin-top:4px}
+  .titleblock{font-size:.72rem;text-align:right;color:var(--ink-soft);line-height:1.7}
+  .titleblock b{color:var(--ink)}
+
+  main{max-width:1180px;margin:0 auto;padding:22px 24px 70px;display:grid;gap:26px}
+
+  .card{
+    background:var(--sheet);
+    border:1.5px solid var(--ink);
+    box-shadow:5px 5px 0 rgba(38,37,31,.10);
+  }
+  .card-head{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:10px 16px;border-bottom:1.5px solid var(--ink);flex-wrap:wrap;
+  }
+  .card-head h2{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+  .tag{font-size:.68rem;letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+
+  /* ---------- 3D viewport ---------- */
+  #viewport{position:relative;height:520px;background:
+    linear-gradient(#FFFFFF, #F2EFE6);
+    cursor:grab;touch-action:none;}
+  #viewport.dragging{cursor:grabbing}
+  #c3d{display:block;width:100%;height:100%}
+  .controls{
+    display:flex;gap:18px;align-items:center;padding:12px 16px;
+    border-top:1.5px solid var(--ink);flex-wrap:wrap;background:var(--sheet);
+  }
+  .controls label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  input[type=range]{width:220px;accent-color:var(--dim)}
+  .btn{
+    font:inherit;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;
+    border:1.5px solid var(--ink);background:var(--sheet);color:var(--ink);
+    padding:7px 14px;cursor:pointer;
+  }
+  .btn[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+  .btn:focus-visible,input:focus-visible{outline:2px solid var(--dim);outline-offset:2px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-left:auto}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--ink-soft)}
+  .chip{width:11px;height:11px;border:1px solid var(--ink);display:inline-block}
+  .hint{position:absolute;left:14px;bottom:12px;font-size:.68rem;color:var(--ink-soft);
+    background:rgba(255,255,255,.75);padding:3px 8px;border:1px solid var(--hair)}
+
+  /* ---------- 2D sheets ---------- */
+  .grid2d{display:grid;grid-template-columns:1.15fr .85fr;gap:26px}
+  @media(max-width:880px){.grid2d{grid-template-columns:1fr}}
+  .sheet-body{padding:14px}
+  svg{width:100%;height:auto;display:block}
+  svg text{font-family:"SF Mono","Cascadia Mono","Consolas",monospace}
+
+  .notes{padding:18px 22px;font-size:.86rem;display:grid;gap:8px}
+  .notes li{margin-left:18px}
+  .notes b{color:var(--dim)}
+  footer{max-width:1180px;margin:0 auto;padding:0 24px 40px;color:var(--ink-soft);font-size:.72rem}
+  @media (prefers-reduced-motion: reduce){ .no-anim{display:none} }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Sauce-Well Paper Cup</h1>
+    <div class="sub">Microwave-safe food cup · compartment lid for sauce &amp; breadcrumbs · integrated spoon/fork holder</div>
+  </div>
+  <div class="titleblock mono">
+    DWG NO <b>SWC-001</b> · REV A<br>
+    SCALE 1 : 1 (INCHES) · SHEET 1 / 1<br>
+    MATERIAL: PE-COATED FOOD PAPERBOARD (MW-SAFE)
+  </div>
+</header>
+
+<main>
+
+  <!-- ======================= 3D ======================= -->
+  <section class="card">
+    <div class="card-head">
+      <h2>3-D Model — Exploded Assembly</h2>
+      <span class="tag">drag to rotate · scroll to zoom</span>
+    </div>
+    <div id="viewport">
+      <canvas id="c3d"></canvas>
+      <div class="hint mono no-anim">auto-rotating — drag to take over</div>
+    </div>
+    <div class="controls">
+      <label for="explode">Explode</label>
+      <input id="explode" type="range" min="0" max="100" value="70" aria-label="Explode amount">
+      <button class="btn" id="spinBtn" aria-pressed="true">Auto-rotate</button>
+      <button class="btn" id="sauceBtn" aria-pressed="true">Show sauce fill</button>
+      <div class="legend">
+        <span><i class="chip" style="background:#F2EFE8"></i>Lid</span>
+        <span><i class="chip" style="background:#FFFFFF"></i>Compartment lid</span>
+        <span><i class="chip" style="background:var(--seal)"></i>Seal</span>
+        <span><i class="chip" style="background:var(--sauce)"></i>Sauce well</span>
+        <span><i class="chip" style="background:var(--kraft)"></i>Food container</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 2D ======================= -->
+  <div class="grid2d">
+
+    <!-- Exploded front elevation with dimensions -->
+    <section class="card">
+      <div class="card-head"><h2>2-D — Exploded Front Elevation</h2><span class="tag mono">view A</span></div>
+      <div class="sheet-body">
+      <svg viewBox="0 0 560 620" role="img" aria-label="Exploded front elevation with dimensions">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="#1F7A6D"/>
+          </marker>
+          <marker id="arrR" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
+            <path d="M8,0 L0,4 L8,8 z" fill="#1F7A6D"/>
+          </marker>
+          <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="7" stroke="#B9B49F" stroke-width="1.1"/>
+          </pattern>
+        </defs>
+
+        <!-- centerline -->
+        <line x1="255" y1="18" x2="255" y2="600" stroke="#C9C4B2" stroke-width="1" stroke-dasharray="10 4 2 4"/>
+
+        <!-- ===== OUTER LID ===== -->
+        <g stroke="#26251F" stroke-width="2" fill="#F2EFE8">
+          <rect x="140" y="34" width="230" height="30" rx="13"/>
+          <line x1="140" y1="46" x2="370" y2="46" stroke-width="1.2"/>
+        </g>
+        <g class="mono" font-size="13" fill="#26251F">
+          <line x1="372" y1="49" x2="428" y2="49" stroke="#1F7A6D" stroke-width="1.4" marker-start="url(#arrR)"/>
+          <text x="434" y="53">LID (snap-on)</text>
+        </g>
+
+        <!-- ===== COMPARTMENT LID ===== -->
+        <g stroke="#26251F" stroke-width="2">
+          <!-- body -->
+          <rect x="150" y="120" width="210" height="62" fill="#FFFFFF"/>
+          <!-- seal bead -->
+          <circle cx="150" cy="128" r="5" fill="#5B7FA6" stroke-width="1.4"/>
+          <circle cx="360" cy="128" r="5" fill="#5B7FA6" stroke-width="1.4"/>
+          <!-- well floors (recessed) -->
+          <path d="M162 132 v34 h66 v-34" fill="url(#hatch)" stroke-width="1.6"/>
+          <path d="M282 132 v34 h66 v-34" fill="url(#hatch)" stroke-width="1.6"/>
+          <!-- centre spoon channel -->
+          <rect x="236" y="126" width="38" height="44" fill="#FFFFFF" stroke-width="1.6"/>
+          <!-- spoon lying in channel (section) -->
+          <g stroke="#6E6C60" stroke-width="1.6" fill="none">
+            <line x1="243" y1="160" x2="263" y2="160"/>
+            <ellipse cx="252" cy="152" rx="8" ry="5"/>
+          </g>
+        </g>
+        <g class="mono" font-size="13" fill="#26251F">
+          <line x1="362" y1="140" x2="428" y2="140" stroke="#1F7A6D" stroke-width="1.4" marker-start="url(#arrR)"/>
+          <text x="434" y="136">COMPARTMENT LID</text>
+          <text x="434" y="152" fill="#6E6C60">sauce / breadcrumb</text>
+          <text x="434" y="166" fill="#6E6C60">wells (optional add-on)</text>
+          <line x1="148" y1="128" x2="86" y2="110" stroke="#1F7A6D" stroke-width="1.4" marker-start="url(#arrR)"/>
+          <text x="30" y="104">SEAL</text>
+          <line x1="252" y1="148" x2="180" y2="96" stroke="#1F7A6D" stroke-width="1.4" marker-start="url(#arrR)"/>
+          <text x="118" y="90">SPOON / FORK</text>
+          <text x="118" y="104" fill="#6E6C60">holder channel</text>
+        </g>
+        <!-- 1 inch dim -->
+        <g stroke="#1F7A6D" stroke-width="1.4" class="mono" font-size="13">
+          <line x1="128" y1="120" x2="128" y2="182" marker-start="url(#arrR)" marker-end="url(#arr)"/>
+          <line x1="122" y1="120" x2="150" y2="120" stroke-width="1"/>
+          <line x1="122" y1="182" x2="150" y2="182" stroke-width="1"/>
+          <text x="70" y="156" fill="#1F7A6D">1.00"</text>
+        </g>
+
+        <!-- ===== FOOD CONTAINER ===== -->
+        <g stroke="#26251F" stroke-width="2" fill="#EFE6D4">
+          <path d="M145 250 L172 560 Q255 578 338 560 L365 250 Q255 262 145 250 Z"/>
+          <ellipse cx="255" cy="250" rx="110" ry="13" fill="#F7F1E4"/>
+          <!-- rolled rim -->
+          <path d="M145 250 Q255 262 365 250" fill="none" stroke-width="2.4"/>
+        </g>
+        <g class="mono" font-size="13" fill="#26251F">
+          <line x1="342" y1="330" x2="428" y2="316" stroke="#1F7A6D" stroke-width="1.4" marker-start="url(#arrR)"/>
+          <text x="434" y="314">FOOD CONTAINER</text>
+          <text x="434" y="330" fill="#6E6C60">PE-coated paperboard,</text>
+          <text x="434" y="344" fill="#6E6C60">microwave-safe</text>
+        </g>
+
+        <!-- 4 inch height dim -->
+        <g stroke="#1F7A6D" stroke-width="1.4" class="mono" font-size="13">
+          <line x1="112" y1="250" x2="112" y2="566" marker-start="url(#arrR)" marker-end="url(#arr)"/>
+          <line x1="106" y1="250" x2="145" y2="250" stroke-width="1"/>
+          <line x1="106" y1="566" x2="172" y2="566" stroke-width="1"/>
+          <text x="58" y="414" fill="#1F7A6D">4.00"</text>
+        </g>
+        <!-- 3 inch dia dim -->
+        <g stroke="#1F7A6D" stroke-width="1.4" class="mono" font-size="13">
+          <line x1="145" y1="596" x2="365" y2="596" marker-start="url(#arrR)" marker-end="url(#arr)"/>
+          <line x1="145" y1="576" x2="145" y2="602" stroke-width="1"/>
+          <line x1="365" y1="576" x2="365" y2="602" stroke-width="1"/>
+          <text x="218" y="614" fill="#1F7A6D">Ø 3.00" (top)</text>
+        </g>
+      </svg>
+      </div>
+    </section>
+
+    <!-- Top view of compartment lid -->
+    <section class="card">
+      <div class="card-head"><h2>2-D — Compartment Lid, Top View</h2><span class="tag mono">view B</span></div>
+      <div class="sheet-body">
+      <svg viewBox="0 0 440 470" role="img" aria-label="Top view of compartment lid">
+        <defs>
+          <pattern id="hatch2" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#C9A15C" stroke-width="1.2"/>
+          </pattern>
+        </defs>
+        <!-- centerlines -->
+        <line x1="220" y1="12" x2="220" y2="410" stroke="#C9C4B2" stroke-dasharray="10 4 2 4"/>
+        <line x1="18" y1="210" x2="422" y2="210" stroke="#C9C4B2" stroke-dasharray="10 4 2 4"/>
+
+        <!-- seal ring -->
+        <circle cx="220" cy="210" r="172" fill="none" stroke="#5B7FA6" stroke-width="7" opacity=".85"/>
+        <!-- outer rim -->
+        <circle cx="220" cy="210" r="160" fill="#FFFFFF" stroke="#26251F" stroke-width="2.4"/>
+        <circle cx="220" cy="210" r="146" fill="none" stroke="#26251F" stroke-width="1.4"/>
+
+        <!-- left sauce well (D-shape) -->
+        <path d="M196 76 A140 140 0 0 0 196 344 L196 76 Z"
+              fill="url(#hatch2)" stroke="#26251F" stroke-width="2"/>
+        <!-- right sauce well -->
+        <path d="M244 76 A140 140 0 0 1 244 344 L244 76 Z"
+              fill="url(#hatch2)" stroke="#26251F" stroke-width="2"/>
+
+        <!-- spoon channel -->
+        <rect x="200" y="72" width="40" height="276" rx="10" fill="#FFFFFF" stroke="#26251F" stroke-width="2"/>
+        <!-- spoon outline -->
+        <g fill="none" stroke="#6E6C60" stroke-width="2">
+          <ellipse cx="220" cy="132" rx="14" ry="26"/>
+          <path d="M215 156 q5 8 5 22 v112 q0 14 -1 20 h2 q4 -6 4 -20"/>
+          <line x1="220" y1="158" x2="220" y2="312" stroke-width="4" stroke-linecap="round"/>
+        </g>
+
+        <!-- callouts -->
+        <g class="mono" font-size="13" fill="#26251F">
+          <line x1="120" y1="150" x2="52" y2="108" stroke="#1F7A6D" stroke-width="1.4"/>
+          <text x="14" y="98">SAUCE WELL</text>
+          <line x1="320" y1="150" x2="384" y2="108" stroke="#1F7A6D" stroke-width="1.4"/>
+          <text x="332" y="98">CRUMB WELL</text>
+          <line x1="220" y1="230" x2="300" y2="270" stroke="#1F7A6D" stroke-width="1.4"/>
+          <text x="252" y="290">SPOON / FORK</text>
+          <text x="252" y="306">HOLDER</text>
+          <line x1="340" y1="330" x2="386" y2="374" stroke="#1F7A6D" stroke-width="1.4"/>
+          <text x="352" y="392">SEAL</text>
+        </g>
+
+        <!-- dia dim -->
+        <g stroke="#1F7A6D" stroke-width="1.4" class="mono" font-size="13">
+          <line x1="60" y1="440" x2="380" y2="440" marker-start="url(#arrR)" marker-end="url(#arr)"/>
+          <line x1="60" y1="386" x2="60" y2="446" stroke-width="1"/>
+          <line x1="380" y1="386" x2="380" y2="446" stroke-width="1"/>
+          <text x="164" y="460" fill="#1F7A6D">Ø 2.90" (nests in cup)</text>
+        </g>
+      </svg>
+      </div>
+    </section>
+  </div>
+
+  <!-- Assembled section -->
+  <section class="card">
+    <div class="card-head"><h2>2-D — Assembled Cross-Section</h2><span class="tag mono">view C · section A–A</span></div>
+    <div class="sheet-body">
+    <svg viewBox="0 0 900 360" role="img" aria-label="Assembled cross section">
+      <defs>
+        <pattern id="hatch3" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="7" stroke="#B9B49F" stroke-width="1.1"/>
+        </pattern>
+      </defs>
+      <line x1="450" y1="10" x2="450" y2="350" stroke="#C9C4B2" stroke-dasharray="10 4 2 4"/>
+
+      <!-- cup walls (section = hatched) -->
+      <g stroke="#26251F" stroke-width="2">
+        <path d="M310 84 L336 320 Q450 336 564 320 L590 84" fill="none" stroke-width="2.4"/>
+        <path d="M310 84 l10 0 26 230 q104 14 208 0 l26 -230 l10 0" fill="none" stroke-width="0"/>
+        <path d="M310 84 h12 l25 228 h-12 Z" fill="url(#hatch3)"/>
+        <path d="M578 84 h12 l-25 228 h-12 Z" fill="url(#hatch3)"/>
+        <path d="M347 312 h206 v10 q-104 16 -206 0 Z" fill="url(#hatch3)"/>
+      </g>
+
+      <!-- compartment lid seated in mouth -->
+      <g stroke="#26251F" stroke-width="2">
+        <rect x="322" y="88" width="256" height="58" fill="#FFFFFF"/>
+        <path d="M334 100 v34 h84 v-34" fill="url(#hatch3)" stroke-width="1.4"/>
+        <path d="M482 100 v34 h84 v-34" fill="url(#hatch3)" stroke-width="1.4"/>
+        <rect x="428" y="94" width="44" height="46" fill="#FFFFFF" stroke-width="1.4"/>
+        <g stroke="#6E6C60" stroke-width="1.6" fill="none">
+          <line x1="436" y1="130" x2="464" y2="130"/>
+          <ellipse cx="450" cy="120" rx="9" ry="6"/>
+        </g>
+        <!-- sauce fills -->
+        <rect x="336" y="118" width="80" height="15" fill="#D9902A" opacity=".85" stroke="none"/>
+        <rect x="484" y="118" width="80" height="15" fill="#E4C98F" opacity=".9" stroke="none"/>
+        <!-- seal beads compressed against cup wall -->
+        <circle cx="322" cy="94" r="6" fill="#5B7FA6" stroke-width="1.4"/>
+        <circle cx="578" cy="94" r="6" fill="#5B7FA6" stroke-width="1.4"/>
+      </g>
+
+      <!-- outer lid on top -->
+      <g stroke="#26251F" stroke-width="2" fill="#F2EFE8">
+        <rect x="296" y="52" width="308" height="28" rx="12"/>
+      </g>
+
+      <!-- food fill -->
+      <path d="M338 170 q112 -18 224 0 l16 142 q-128 16 -256 0 Z" fill="#EFE0C2" opacity=".55" transform="translate(0,4)"/>
+
+      <!-- callouts -->
+      <g class="mono" font-size="13" fill="#26251F">
+        <line x1="604" y1="64" x2="668" y2="52" stroke="#1F7A6D" stroke-width="1.4"/>
+        <text x="674" y="52">LID</text>
+        <line x1="580" y1="94" x2="668" y2="92" stroke="#1F7A6D" stroke-width="1.4"/>
+        <text x="674" y="96">SEAL — keeps wells airtight</text>
+        <line x1="566" y1="124" x2="668" y2="130" stroke="#1F7A6D" stroke-width="1.4"/>
+        <text x="674" y="134">SAUCE / CRUMB WELLS</text>
+        <line x1="460" y1="120" x2="500" y2="200" stroke="#1F7A6D" stroke-width="1.4"/>
+        <text x="506" y="212">SPOON HOLDER (between wells)</text>
+        <line x1="560" y1="260" x2="668" y2="252" stroke="#1F7A6D" stroke-width="1.4"/>
+        <text x="674" y="256">HOT FOOD — microwave here;</text>
+        <text x="674" y="272" fill="#6E6C60">wells lift out before heating</text>
+        <line x1="296" y1="66" x2="220" y2="66" stroke="#1F7A6D" stroke-width="1.4"/>
+        <text x="118" y="70" text-anchor="start">Ø 3.20" o.d.</text>
+        <line x1="322" y1="120" x2="240" y2="140" stroke="#1F7A6D" stroke-width="1.4"/>
+        <text x="120" y="146">1.00" insert</text>
+      </g>
+    </svg>
+    </div>
+  </section>
+
+  <!-- Notes -->
+  <section class="card">
+    <div class="card-head"><h2>Design Notes</h2><span class="tag mono">per sketch SWC-001</span></div>
+    <ul class="notes">
+      <li><b>Stack order (top → bottom):</b> outer lid → compartment lid (1.00" tall) → food container (Ø3.00" × 4.00").</li>
+      <li><b>Compartment lid</b> is an optional add-on: two D-shaped wells hold sauce and breadcrumbs separate from the hot dish; a raised centre channel between them holds a spoon or fork.</li>
+      <li><b>Seal</b> runs around the compartment lid's rim, closing the wells against the underside of the outer lid and the cup mouth so sauces can't leak in transit.</li>
+      <li><b>Microwave use:</b> lift out the compartment lid (with cutlery and cold sauces) and heat only the paperboard food container, then re-seat the lid to dress the dish.</li>
+      <li>Compartment lid nests ~Ø2.90" inside the Ø3.00" mouth; cup tapers to ~Ø2.50" at the base for stacking.</li>
+    </ul>
+  </section>
+
+</main>
+<footer class="mono">SWC-001 · drawn from customer sketch · dimensions in inches · not for tooling release</footer>
+
+<script>
+(function(){
+  const IN = 1; // 1 unit = 1 inch
+  const canvas = document.getElementById('c3d');
+  const viewport = document.getElementById('viewport');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 2, 0.1, 100);
+
+  // lights
+  scene.add(new THREE.HemisphereLight(0xfff8ec, 0xcfc8b6, 0.95));
+  const key = new THREE.DirectionalLight(0xffffff, 0.85);
+  key.position.set(5,8,6);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0xdfe8ff, 0.35);
+  rim.position.set(-6,3,-5);
+  scene.add(rim);
+
+  const matKraft = new THREE.MeshStandardMaterial({color:0xE8DCC8, roughness:.85});
+  const matKraftIn = new THREE.MeshStandardMaterial({color:0xF4EDDD, roughness:.9, side:THREE.BackSide});
+  const matWhite = new THREE.MeshStandardMaterial({color:0xFCFBF7, roughness:.6});
+  const matLid   = new THREE.MeshStandardMaterial({color:0xF2EFE8, roughness:.5});
+  const matSeal  = new THREE.MeshStandardMaterial({color:0x5B7FA6, roughness:.55});
+  const matSpoon = new THREE.MeshStandardMaterial({color:0xEDE9DF, roughness:.4});
+  const matSauce = new THREE.MeshStandardMaterial({color:0xD9902A, roughness:.35});
+  const matCrumb = new THREE.MeshStandardMaterial({color:0xE4C98F, roughness:.9});
+  const edgeMat  = new THREE.LineBasicMaterial({color:0x4a4840});
+
+  function addEdges(mesh, thresh){
+    const eg = new THREE.EdgesGeometry(mesh.geometry, thresh||30);
+    mesh.add(new THREE.LineSegments(eg, edgeMat));
+  }
+
+  const root = new THREE.Group();
+  scene.add(root);
+
+  // ---------- FOOD CONTAINER (tapered cup, hollow) ----------
+  const cup = new THREE.Group();
+  const rTop=1.5*IN, rBot=1.25*IN, hCup=4*IN, wall=0.06;
+  const cupOuter = new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBot,hCup,48,1,true), matKraft);
+  const cupInner = new THREE.Mesh(new THREE.CylinderGeometry(rTop-wall,rBot-wall,hCup-0.02,48,1,true), matKraftIn);
+  const cupFloor = new THREE.Mesh(new THREE.CylinderGeometry(rBot-wall,rBot-wall,0.06,48), matKraft);
+  cupFloor.position.y = -hCup/2 + 0.1;
+  const rimRoll = new THREE.Mesh(new THREE.TorusGeometry(rTop, 0.06, 12, 48), matKraft);
+  rimRoll.rotation.x = Math.PI/2; rimRoll.position.y = hCup/2;
+  cup.add(cupOuter,cupInner,cupFloor,rimRoll);
+  cup.position.y = hCup/2;
+  root.add(cup);
+
+  // ---------- COMPARTMENT LID (tray insert) ----------
+  const tray = new THREE.Group();
+  const rTray=1.42*IN, hTray=1*IN, tw=0.05;
+  const trayWall = new THREE.Mesh(new THREE.CylinderGeometry(rTray,rTray,hTray,48,1,true),
+      new THREE.MeshStandardMaterial({color:0xFCFBF7, roughness:.6, side:THREE.DoubleSide}));
+  const trayFloor = new THREE.Mesh(new THREE.CylinderGeometry(rTray,rTray,tw,48), matWhite);
+  trayFloor.position.y = -hTray/2 + tw/2;
+  // centre spoon channel: raised box across the diameter
+  const chanW=0.62, chanH=0.55;
+  const channel = new THREE.Mesh(new THREE.BoxGeometry(chanW, chanH, rTray*2*0.96), matWhite);
+  channel.position.y = -hTray/2 + chanH/2 + tw;
+  addEdges(channel);
+  // spoon lying in channel
+  const spoon = new THREE.Group();
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 14, 0, Math.PI*2, 0, Math.PI/2), matSpoon);
+  bowl.scale.set(1, 0.45, 1.5);
+  bowl.rotation.x = Math.PI; // hollow up
+  bowl.position.z = -0.85;
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.07,1.7,10), matSpoon);
+  handle.rotation.x = Math.PI/2; handle.position.z = 0.35;
+  spoon.add(bowl, handle);
+  spoon.position.y = channel.position.y + chanH/2 + 0.06;
+  // sauce fills (toggleable) — two half-disc pools
+  function halfDisc(mat, sign){
+    const shape = new THREE.Shape();
+    const R = rTray*0.9, off = chanW/2 + 0.1;
+    shape.absarc(0,0,R, sign>0? -Math.PI/2+0.25 : Math.PI/2+0.25, sign>0? Math.PI/2-0.25 : 3*Math.PI/2-0.25, false);
+    const g = new THREE.ExtrudeGeometry(shape,{depth:0.22,bevelEnabled:false});
+    const m = new THREE.Mesh(g, mat);
+    m.rotation.x = -Math.PI/2;
+    m.position.y = -hTray/2 + tw + 0.02;
+    return m;
+  }
+  const sauceL = halfDisc(matSauce, +1);
+  const sauceR = halfDisc(matCrumb, -1);
+  // seal torus at rim
+  const seal = new THREE.Mesh(new THREE.TorusGeometry(rTray+0.03, 0.05, 12, 48), matSeal);
+  seal.rotation.x = Math.PI/2; seal.position.y = hTray/2 - 0.05;
+  tray.add(trayWall, trayFloor, channel, spoon, sauceL, sauceR, seal);
+  root.add(tray);
+
+  // ---------- OUTER LID ----------
+  const lid = new THREE.Group();
+  const lidTop = new THREE.Mesh(new THREE.CylinderGeometry(1.6*IN,1.6*IN,0.28,48), matLid);
+  addEdges(lidTop, 15);
+  const lidSkirt = new THREE.Mesh(new THREE.CylinderGeometry(1.55*IN,1.55*IN,0.22,48,1,true), matLid);
+  lidSkirt.position.y = -0.22;
+  const lidGrip = new THREE.Mesh(new THREE.TorusGeometry(1.6*IN,0.05,12,48), matLid);
+  lidGrip.rotation.x = Math.PI/2; lidGrip.position.y = 0.14;
+  lid.add(lidTop, lidSkirt, lidGrip);
+  root.add(lid);
+
+  // explode positioning
+  const explodeInput = document.getElementById('explode');
+  function layout(){
+    const t = explodeInput.value/100;
+    tray.position.y = (hCup - hTray/2 - 0.15) + t*1.6;       // seated in mouth -> lifted
+    lid.position.y  = (hCup + 0.14) + t*3.4;                  // on rim -> high
+  }
+  layout();
+  explodeInput.addEventListener('input', layout);
+
+  // sauce toggle
+  const sauceBtn = document.getElementById('sauceBtn');
+  sauceBtn.addEventListener('click', ()=>{
+    const on = sauceBtn.getAttribute('aria-pressed')!=='true';
+    sauceBtn.setAttribute('aria-pressed', on);
+    sauceL.visible = sauceR.visible = on;
+  });
+
+  // ---------- camera orbit (custom) ----------
+  let theta = 0.7, phi = 1.15, dist = 12, target = new THREE.Vector3(0, 2.6, 0);
+  let auto = true;
+  const spinBtn = document.getElementById('spinBtn');
+  spinBtn.addEventListener('click', ()=>{
+    auto = !auto;
+    spinBtn.setAttribute('aria-pressed', auto);
+  });
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){
+    auto = false; spinBtn.setAttribute('aria-pressed','false');
+  }
+
+  function updateCam(){
+    phi = Math.max(0.25, Math.min(Math.PI-0.35, phi));
+    dist = Math.max(6, Math.min(24, dist));
+    camera.position.set(
+      target.x + dist*Math.sin(phi)*Math.sin(theta),
+      target.y + dist*Math.cos(phi),
+      target.z + dist*Math.sin(phi)*Math.cos(theta)
+    );
+    camera.lookAt(target);
+  }
+
+  let drag=false, px=0, py=0;
+  viewport.addEventListener('pointerdown', e=>{
+    drag=true; px=e.clientX; py=e.clientY;
+    viewport.classList.add('dragging');
+    viewport.setPointerCapture(e.pointerId);
+  });
+  viewport.addEventListener('pointermove', e=>{
+    if(!drag) return;
+    theta -= (e.clientX-px)*0.008;
+    phi   -= (e.clientY-py)*0.008;
+    px=e.clientX; py=e.clientY;
+  });
+  const endDrag = e=>{drag=false; viewport.classList.remove('dragging');};
+  viewport.addEventListener('pointerup', endDrag);
+  viewport.addEventListener('pointercancel', endDrag);
+  viewport.addEventListener('wheel', e=>{
+    e.preventDefault();
+    dist += e.deltaY*0.01;
+  }, {passive:false});
+  // pinch zoom
+  let pinch=null;
+  viewport.addEventListener('touchmove', e=>{
+    if(e.touches.length===2){
+      const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                           e.touches[0].clientY-e.touches[1].clientY);
+      if(pinch) dist *= pinch/d;
+      pinch = d;
+    }
+  });
+  viewport.addEventListener('touchend', ()=>pinch=null);
+
+  function resize(){
+    const w = viewport.clientWidth, h = viewport.clientHeight;
+    renderer.setSize(w,h,false);
+    camera.aspect = w/h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  (function loop(){
+    requestAnimationFrame(loop);
+    if(auto && !drag) theta += 0.0035;
+    updateCam();
+    renderer.render(scene,camera);
+  })();
+})();
+</script>
+</body>
+</html>
